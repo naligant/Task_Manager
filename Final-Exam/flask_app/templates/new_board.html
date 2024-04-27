@@ -1,0 +1,83 @@
+{% extends 'shared/layout.html' %}
+
+{% block extracss %}
+<link rel="stylesheet" href="{{ url_for('static', filename='new_board/css/new_board.css') }}">
+{% endblock %}
+
+{% block extrajs %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+{% endblock %}
+
+{% block maincontent %}
+<br><br>
+<div id="new_board_form" class="new_board_form">
+    <p class="big_text">New board</p>
+    <input class="smaller_box" title="project name" type="text" id="project_name" name="project_name" placeholder="Your project name"><br><br>
+    <button class="add_member" onclick="addMember()">Add Member</button>
+    <div class="new_element" id="input_email"></div>
+    <input class="submit" title="submit button for form" type="submit" value="Submit" onclick="Submission()">
+</div>
+
+<script>
+
+function addMember() {
+    const divEle = document.getElementById("input_email");
+    const space = document.createElement("br")
+    const wrapper = document.createElement("div");
+    const inputMember = document.createElement("input");
+    inputMember.setAttribute("type", "text");
+    inputMember.setAttribute("placeholder", "Enter Member Email");
+    inputMember.classList.add("new_element");
+    wrapper.appendChild(space);
+    wrapper.appendChild(inputMember);
+    wrapper.appendChild(space);
+    divEle.appendChild(wrapper);
+}
+
+
+function get_values() {
+    const inputs = document.querySelectorAll(".new_element");
+    const values = [];
+    inputs.forEach(input =>{
+        values.push(input.value);
+    });
+    const concatvalues = 'me@gmail.com' + values.join(', ');
+    return concatvalues
+}
+
+function Submission(){
+    var name = document.getElementById("project_name")
+    var emails = get_values()
+    console.log(emails)
+    // emails[0] = 'me@email.com'
+    var data_d = {'name': name.value, 'members': emails}
+    addProject(data_d);
+
+}
+
+function addProject(data_d) {
+    // SEND DATA TO SERVER VIA jQuery.ajax({})
+    console.log(data_d)
+    jQuery.ajax({
+        url: "/processboard",
+        data: data_d,
+        type: "POST",
+        dataType: "json",
+        success:function(returned_data){
+            
+            // console.log(returned_data['success'])
+            console.log(returned_data)
+            if (returned_data['success'] == 1) {
+                window.location.href = "/board/" + returned_data['board_id'];
+            }
+            else {
+                message = document.getElementById('failed_attempts')
+                message.textContent = 'Authentication failure';
+            }
+              returned_data = JSON.parse(returned_data);
+              window.location.href = "/home";
+        }
+    });
+}
+</script>
+{% endblock %}

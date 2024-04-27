@@ -1,0 +1,10 @@
+.big_text{
+    align-self: center;
+    font-size: 3vw;
+}
+
+.project_list {
+    display: flex;
+    align-self: center;
+    flex-direction: column;
+}

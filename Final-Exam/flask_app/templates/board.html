@@ -1,0 +1,310 @@
+{% extends 'shared/layout.html' %}
+
+{% block extracss %}
+<link rel="stylesheet" href="{{ url_for('static', filename='board/css/board.css') }}">
+{% endblock %}
+
+{% block extrajs %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.socket.io/3.1.1/socket.io.min.js"></script>
+{% endblock %}
+
+{% block maincontent %}
+<div class="trello">
+    <br><br>
+    <p class="title">{{board_data[0]['name']}}</p>
+
+    <div class="categories">
+        <div class="category" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <p>To Do</p>
+            <button class="add_member" onclick="addTask('todo')">Add Task</button>
+            <div class="new_task" id="todo"></div>
+        </div>
+        <div class="category" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <p>Doing</p>
+            <button class="add_member" onclick="addTask('doing')">Add Task</button>
+            <div class="new_task" id="doing"></div>
+        </div>
+        <div class="category" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <p>Completed</p>
+            <button class="add_member" onclick="addTask('completed')">Add Task</button>
+            <div class="new_task" id="completed"></div>
+        </div>
+        {%for task in task_data%}
+            <script>
+                function currentTask(description, category){
+                    console.log(description, category)
+                    const divEle = document.getElementById(category);
+                    const space = document.createElement("br")
+                    const wrapper = document.createElement("div");
+
+                    const inputMember = document.createElement("input");
+                    const editMember = document.createElement("input");
+                    const deleteMember = document.createElement("input");
+
+                    inputMember.setAttribute("type", "text");
+                    editMember.setAttribute("type", "submit");
+                    deleteMember.setAttribute("type", "submit");
+
+                    inputMember.setAttribute("value", description);
+                    inputMember.setAttribute("id", "{{ task['task_id'] }}")
+                    editMember.setAttribute("value", "Edit");
+                    deleteMember.setAttribute("value", "Delete");
+
+                    inputMember.classList.add("inside_task");
+                    wrapper.classList.add("task");
+                    wrapper.setAttribute("draggable", true);
+                    wrapper.setAttribute("ondragstart", "drag(event)")
+                    wrapper.setAttribute("id", "task_box");
+                    inputMember.disabled = true;
+                    let isEditable = false
+
+                    wrapper.appendChild(space);
+                    wrapper.appendChild(inputMember);
+                    wrapper.appendChild(editMember);
+                    wrapper.appendChild(deleteMember);
+                    wrapper.appendChild(space);
+                    divEle.appendChild(wrapper);
+                    
+                    deleteMember.addEventListener("click", function(event) {
+                        var data_d = {'task_id': '{{task["task_id"]}}', 'process': 'delete', 'board_id': boardId};
+                        console.log(data_d);
+                        divEle.removeChild(wrapper);
+                        addTaskDatabase(data_d);
+                    })
+                    
+                    editMember.addEventListener("click", function(event) {
+                        isEditable = !isEditable;
+                        inputMember.disabled = !isEditable;
+                    });
+
+                    inputMember.addEventListener("keyup", function(event){
+                        if (event.keyCode === 13 && !isEditable) {
+                            var inputValue = inputMember.value;
+                            var data_d = {'board_id': boardId,'description': inputValue, 'category': category, 'process': 'add'}
+                            console.log(data_d)
+                            addTaskDatabase(data_d);
+                            inputMember.disabled = true;
+                        }
+                        else if (event.keyCode === 13 && isEditable) {
+                            var editedValue = inputMember.value;
+                            var data_d = {'task_id': '{{task["task_id"]}}' , 'board_id': boardId,'description': editedValue, 'category': category, 'process': 'edit'};
+                            console.log(data_d)
+                            addTaskDatabase(data_d)
+                            inputMember.disabled = true;
+                        }
+                    });
+                }
+                currentTask('{{ task["description"] }}', '{{ task["category"] }}')
+            </script>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    var count = {{tasks_length}};
+    var boardId = "{{ board_data[0]['board_id'] }}";
+    var socket;
+    // var socket = io('/board/' + boardId);
+    // socket = io.connect('http://' + document.domain + ':' + location.port + '/board/' + boardId);
+
+    function addTask(category) {
+        count += 1
+        const divEle = document.getElementById(category);
+        const space = document.createElement("br")
+        const wrapper = document.createElement("div");
+
+        const inputMember = document.createElement("input");
+        const editMember = document.createElement("input");
+        const deleteMember = document.createElement("input");
+
+        inputMember.setAttribute("type", "text");
+        editMember.setAttribute("type", "submit");
+        deleteMember.setAttribute("type", "submit");
+
+        inputMember.setAttribute("placeholder", "Enter Description");
+        inputMember.setAttribute("id", count);
+        editMember.setAttribute("value", "Edit");
+        deleteMember.setAttribute("value", "Delete");
+
+        inputMember.classList.add("inside_task");
+        wrapper.classList.add("task");
+        wrapper.setAttribute("draggable", true);
+        wrapper.setAttribute("ondragstart", "drag(event)")
+        wrapper.setAttribute("id", "task_box")
+
+        wrapper.appendChild(space);
+        wrapper.appendChild(inputMember);
+        wrapper.appendChild(editMember);
+        wrapper.appendChild(deleteMember);
+        wrapper.appendChild(space);
+        divEle.appendChild(wrapper);
+
+        let isEditable = false
+                    
+        deleteMember.addEventListener("click", function(event) {
+            var data_d = {'task_id': inputMember.id, 'process': 'delete', 'board_id': boardId};
+            divEle.removeChild(wrapper);
+            addTaskDatabase(data_d);
+        })
+        
+        editMember.addEventListener("click", function(event) {
+            isEditable = !isEditable;
+            inputMember.disabled = !isEditable;
+        });
+
+        inputMember.addEventListener("keyup", function(event){
+            if (event.keyCode === 13 && !isEditable) {
+                var inputValue = inputMember.value;
+                console.log(inputMember.id)
+                var data_d = {'board_id': boardId,'description': inputValue, 'category': category, 'process': 'add'}
+                console.log(data_d)
+                addTaskDatabase(data_d);
+                inputMember.disabled = true;
+            }
+            else if (event.keyCode === 13 && isEditable) {
+                var editedValue = inputMember.value;
+                var data_d = {'task_id': inputMember.id , 'board_id': boardId,'description': editedValue, 'category': category, 'process': 'edit'};
+                console.log(data_d)
+                addTaskDatabase(data_d)
+                inputMember.disabled = true;
+            }
+        });
+    }
+
+    function allowDrop(event) {
+        event.preventDefault();
+    }
+
+    function drag(event) {
+        event.dataTransfer.setData("text", event.target.id);
+    }
+
+    function drop(event) {
+        event.preventDefault();
+
+        var data = event.dataTransfer.getData("text");
+        var task = document.getElementById(data);
+        var new_category = event.target.closest(".category").querySelector(".new_task").id;
+        event.target.closest(".category").querySelector(".new_task").appendChild(task);
+
+        var task_id = task.querySelector(".inside_task").id;
+        var data_d = {'task_id': task_id, 'category': new_category, 'process': 'move', 'board_id': boardId};
+        addTaskDatabase(data_d);
+    }
+
+    function addTaskDatabase(data_d){
+        jQuery.ajax({
+        url: "/processtask",
+        data: data_d,
+        type: "POST",
+        dataType: "json",
+        success:function(returned_data){
+            if (returned_data['success'] == 1) {
+                console.log(returned_data);
+                data_d.task_id = returned_data.task_id;
+                socket.emit('update_page', data_d)
+            }
+            else {
+                console.log("failed")
+            }
+        }
+        });
+    }
+
+    $(document).ready(function() {
+    socket = io.connect('https://' + document.domain + ':' + location.port + '/board');
+
+    socket.on('connect', function() {
+      console.log('Connected to board namespace');
+      socket.emit('joined', {'board_id': boardId});
+    });
+
+    socket.on('update_page', function(task) {
+      if (task.board_id === boardId) {
+        if (task.process === 'edit') {
+          var task_elem = document.getElementById(task.task_id);
+          task_elem.value = task.description;
+        } else if (task.process === 'add') {
+          var new_task = createTaskElement(task.description, task.category, task.task_id);
+          document.getElementById(task.category).appendChild(new_task);
+        } else if (task.process === 'move') {
+          var task_elem = document.getElementById(task.task_id);
+          var new_category = document.getElementById(task.category);
+          new_category.appendChild(task_elem.parentNode);
+        } else if (task.process === 'delete') {
+          var task_elem = document.getElementById(task.task_id);
+          task_elem.parentNode.removeChild(task_elem);
+        }
+      }
+    });
+  });
+
+    function createTaskElement(description, category, task_id) {
+        count += 1
+        const divEle = document.getElementById(category);
+        const space = document.createElement("br")
+        const wrapper = document.createElement("div");
+
+        const inputMember = document.createElement("input");
+        const editMember = document.createElement("input");
+        const deleteMember = document.createElement("input");
+
+        inputMember.setAttribute("type", "text");
+        editMember.setAttribute("type", "submit");
+        deleteMember.setAttribute("type", "submit");
+
+        inputMember.setAttribute("value", description);
+        inputMember.setAttribute("id", task_id);
+        inputMember.disabled = true;
+        editMember.setAttribute("value", "Edit");
+        deleteMember.setAttribute("value", "Delete");
+
+        inputMember.classList.add("inside_task");
+        wrapper.classList.add("task");
+        wrapper.setAttribute("draggable", true);
+        wrapper.setAttribute("ondragstart", "drag(event)")
+        wrapper.setAttribute("id", task_id)
+
+        wrapper.appendChild(space);
+        wrapper.appendChild(inputMember);
+        wrapper.appendChild(editMember);
+        wrapper.appendChild(deleteMember);
+        wrapper.appendChild(space);
+        divEle.appendChild(wrapper);
+
+        let isEditable = false
+                    
+        deleteMember.addEventListener("click", function(event) {
+            var data_d = {'task_id': inputMember.id, 'process': 'delete'};
+            divEle.removeChild(wrapper);
+            addTaskDatabase(data_d);
+        })
+        
+        editMember.addEventListener("click", function(event) {
+            isEditable = !isEditable;
+            inputMember.disabled = !isEditable;
+        });
+
+        inputMember.addEventListener("keyup", function(event){
+            if (event.keyCode === 13 && !isEditable) {
+                var inputValue = inputMember.value;
+                console.log(inputMember.id)
+                var data_d = {'board_id': boardId,'description': inputValue, 'category': category, 'process': 'add'}
+                console.log(data_d)
+                addTaskDatabase(data_d);
+                inputMember.disabled = true;
+            }
+            else if (event.keyCode === 13 && isEditable) {
+                var editedValue = inputMember.value;
+                var data_d = {'task_id': inputMember.id , 'board_id': boardId,'description': editedValue, 'category': category, 'process': 'edit'};
+                console.log(data_d)
+                addTaskDatabase(data_d)
+                inputMember.disabled = true;
+            }
+        });
+    }
+
+</script>
+
+{% endblock %}

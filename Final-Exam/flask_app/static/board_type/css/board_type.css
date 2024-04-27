@@ -1,0 +1,12 @@
+.board_type_form{
+    display: flex;
+    flex-direction: column;
+    width: 30%;
+    align-self: center;
+    margin-bottom: 30vh;
+}
+
+.button_size{
+    margin-top: 10vh;
+    height: 15vh;
+}

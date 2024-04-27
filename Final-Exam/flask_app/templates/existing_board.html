@@ -1,0 +1,19 @@
+{% extends 'shared/layout.html' %}
+
+{% block extracss %}
+<link rel="stylesheet" href="{{ url_for('static', filename='existing_board/css/existing_board.css') }}">
+{% endblock %}
+
+{% block maincontent %}
+<br><br>
+<p class="big_text">Existing Projects</p>
+<ul class="project_list">
+    {% if all_data != {} %}
+        {% for project in all_data %}
+        <li><a href="board/{{project['board_id']}}">{{project['board_name']}}</a></li>
+        {% endfor %}
+    {% else %}
+        <p>No projects yet</p>
+    {% endif %}
+</ul>
+{% endblock %}

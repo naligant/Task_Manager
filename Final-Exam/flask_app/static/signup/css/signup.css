@@ -1,0 +1,27 @@
+.signup_form{
+    display: flex;
+    align-self: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 50%;
+    /* margin-bottom: 40vh; */
+    /* border: 1px solid black; */
+}
+.big_text{
+    align-self: center;
+    font-size: 3vw;
+}
+
+.smaller_box{
+    align-self: center;
+    height:3vh;
+}
+
+.submit{
+    align-self: center;
+    width: 30%;
+}
+
+.small_text{
+    align-self: center;
+}

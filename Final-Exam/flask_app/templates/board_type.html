@@ -1,0 +1,15 @@
+{% extends 'shared/layout.html' %}
+{% block extracss %}
+<link rel="stylesheet" href="{{ url_for('static', filename='board_type/css/board_type.css') }}">
+{% endblock %}
+
+{% block extrajs %}
+<script src="{{ url_for('static', filename='board_type/js/board_type.js') }}" defer></script>
+{% endblock %}
+
+{% block maincontent %}
+<div id="board_type_form" class="board_type_form">
+    <input id="new_board" class="button_size" title="new board" type="submit" value="New Board" onclick="new_board()">
+    <input id="existing_board" class="button_size" title="existing board" type="submit" value="Existing Board" onclick="existing_board()">
+</div>
+{% endblock %}
